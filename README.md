@@ -1,7 +1,8 @@
 <div align="center">
   <h1>SCAN-Planner ROS 2</h1>
   <h2>面向路线引导四足长程导航的空间碰撞感知局部规划器</h2>
-  
+</div>
+
 <p align="center">
   <img src="assets/images/demo1.png" width="100%"/>
 </p>
@@ -15,7 +16,7 @@
   <img src="assets/images/abstract_real.jpg" width="100%"/>
 </p>
 
-二编：增加一个map.pcd，并提供测试例子（非搭建gazebo测试）
+> 二编：增加一个map.pcd，并提供测试例子（非搭建gazebo测试）
 
 SCAN-Planner 是一款面向四足机器人导航的空间碰撞感知局部规划器。本分支是原生 ROS 2 自移植版本，适配 Ubuntu 22.04、ROS 2 Humble、C++17 和 `colcon` 构建系统。
 
@@ -33,7 +34,6 @@ rosdep update
 rosdep install --from-paths src --ignore-src -r -y
 sudo apt install libarmadillo-dev libglew-dev libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev
 
-
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
 ```
@@ -46,14 +46,16 @@ colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release -DUSE_GPU
 仓库不再链接自带的 x86_64 架构 GLFW 动态库，GPU 构建依赖系统安装的 GLFW、GLEW 和 OpenGL 相关包。
 
 ## 快速启动
---------------------------------------------------------------------------------------
-1.1、在一个终端启动 RViz2：
+
+---
+
+### 1.1、在一个终端启动 RViz2：
 
 ```bash
 source install/setup.bash
 ros2 launch scan_planner rviz.launch.py
 ```
-1.2、在另一个终端启动自定义确定性仿真器与规划器（Mode 1 二维闭环演示，机身高度保持不变）：
+### 1.2、在另一个终端启动自定义确定性仿真器与规划器（Mode 1 二维闭环演示，机身高度保持不变）：
 
 ```bash
 source install/setup.bash
@@ -61,16 +63,16 @@ ros2 launch scan_planner run.launch.py \
   is_real_world:=false navi_mode:=1 sensor_type:=lidar \
   controller_mode:=closed_loop use_gpu:=false
 ```
---------------------------------------------------------------------------------------
+---
 
 
-2.1、在一个终端启动 RViz2：
+### 2.1、在一个终端启动 RViz2：
 
 ```bash
 source install/setup.bash
 ros2 launch scan_planner rviz.launch.py
 ```
-2.2、使用 `map.pcd` 运行 Mode 3 跨层开环演示(注意替换自己的路径)：
+### 2.2、使用 `map.pcd` 运行 Mode 3 跨层开环演示(注意替换自己的路径)：
 
 ```bash
 source install/setup.bash
@@ -78,9 +80,7 @@ ros2 launch scan_planner run.launch.py \
   is_real_world:=false navi_mode:=3 sensor_type:=lidar \
   controller_mode:=open_loop use_gpu:=false \
   use_pcd_map:=true \
-  
   pcd_map_file:=/your_map_location/map.pcd \
-  
   reference_path_file:=/your_project_location/src/planner/plan_manage/config/reference_path.map.yaml
 ```
 
@@ -93,7 +93,7 @@ RViz2 配置已适配 ROS 2 Humble：Go2 的 RobotModel 使用现有的 `meshes/
 
 
 
-导航模式说明：
+### 导航模式说明
 - `navi_mode:=1`：使用 RViz2 的 2D 目标点工具选择导航目标
 - `navi_mode:=2`：按照 ROS 2 参数文件中预设的 `fsm.waypoints` 路径点序列导航
 - `navi_mode:=3`：订阅 `initial_path` 话题获取全局路径，并在局部范围内进行避障
