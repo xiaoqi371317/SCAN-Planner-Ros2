@@ -51,9 +51,19 @@ private:
     pose_pub_->publish(pose);
 
     path_.header.stamp = pose.header.stamp;
-    path_.poses.push_back(pose);
-    if (path_.poses.size() > 10000) path_.poses.erase(path_.poses.begin(), path_.poses.begin() + 1000);
-    path_pub_->publish(path_);
+    const auto &position = pose.pose.position;
+    const double dx = position.x - last_path_position_.x;
+    const double dy = position.y - last_path_position_.y;
+    const double dz = position.z - last_path_position_.z;
+    if (!has_last_path_pose_ || dx * dx + dy * dy + dz * dz > 0.25)
+    {
+      path_.poses.push_back(pose);
+      last_path_position_ = position;
+      has_last_path_pose_ = true;
+      while (path_.poses.size() > 1000)
+        path_.poses.erase(path_.poses.begin());
+      path_pub_->publish(path_);
+    }
 
     visualization_msgs::msg::Marker velocity;
     velocity.header = pose.header;
@@ -126,6 +136,8 @@ private:
   std::string frame_id_, child_frame_id_, mesh_resource_;
   double scale_{1.0}, color_r_{0.0}, color_g_{0.0}, color_b_{0.0}, color_a_{1.0};
   bool publish_tf_{false};
+  bool has_last_path_pose_{false};
+  geometry_msgs::msg::Point last_path_position_;
   nav_msgs::msg::Path path_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;

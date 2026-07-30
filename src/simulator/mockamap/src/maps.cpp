@@ -57,6 +57,12 @@ Maps::randomMapGenerate()
   std::uniform_real_distribution<double> rand_h;
 
   pcl::PointXYZ pt_random;
+  auto pushPoint = [&](double px, double py, double pz) {
+    pt_random.x = px;
+    pt_random.y = py;
+    pt_random.z = pz;
+    info.cloud->points.push_back(pt_random);
+  };
 
   rand_x = std::uniform_real_distribution<double>(_x_l, _x_h);
   rand_y = std::uniform_real_distribution<double>(_y_l, _y_h);
@@ -80,13 +86,6 @@ Maps::randomMapGenerate()
     const double y_max = y + half_w;
     const int xy_steps = std::max(1, static_cast<int>(std::ceil(w / surface_resolution)));
     const int z_steps = std::max(1, static_cast<int>(std::ceil(h / surface_resolution)));
-
-    auto pushPoint = [&](double px, double py, double pz) {
-      pt_random.x = px;
-      pt_random.y = py;
-      pt_random.z = pz;
-      info.cloud->points.push_back(pt_random);
-    };
 
     for (int iz = 0; iz <= z_steps; ++iz)
     {
