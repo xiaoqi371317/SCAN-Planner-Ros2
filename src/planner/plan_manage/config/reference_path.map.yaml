@@ -1,0 +1,17 @@
+reference_path_publisher:
+  ros__parameters:
+    frame_id: world
+    publish_delay_sec: 0.5
+    # Ground/route heights. scan_planner adds grid_map.body_height (0.4 m).
+    waypoints:
+      [-5.5, 5.5, 0.10,
+       -5.5, 4.5, 0.30,
+       -5.5, 3.5, 0.40,
+       -5.5, 2.5, 0.55,
+       -5.5, 1.5, 0.70,
+       -5.5, 0.5, 0.85,
+       -5.5, -0.5, 1.00,
+       -5.5, -1.5, 1.20,
+       -5.5, -2.5, 1.40,
+       -5.5, -3.5, 1.55,
+       -5.5, -4.5, 1.55]

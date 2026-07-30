@@ -37,7 +37,7 @@ colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release -DUSE_GPU
 
 ## 快速启动
 
-启动自定义确定性仿真器与规划器：
+启动自定义确定性仿真器与规划器（Mode 1 二维闭环演示，机身高度保持不变）：
 
 ```bash
 source install/setup.bash
@@ -55,6 +55,21 @@ ros2 launch scan_planner run.launch.py \
   use_pcd_map:=true pcd_map_file:=/home/xiaoqi_wen/Desktop/scan/SCAN-Planner/map.pcd
 ```
 
+使用 `map.pcd` 运行 Mode 3 跨层开环演示：
+
+```bash
+source install/setup.bash
+ros2 launch scan_planner run.launch.py \
+  is_real_world:=false navi_mode:=3 sensor_type:=lidar \
+  controller_mode:=open_loop use_gpu:=false \
+  use_pcd_map:=true \
+  pcd_map_file:=/home/xiaoqi_wen/Desktop/scanfix/SCAN-Planner-Ros2/map.pcd \
+  reference_path_file:=/home/xiaoqi_wen/Desktop/scanfix/SCAN-Planner-Ros2/src/planner/plan_manage/config/reference_path.map.yaml
+```
+
+示例参考路径从 `(-5.5, 5.5, 0.10)` 沿地图坡道上升到
+`(-5.5, -4.5, 1.55)`。路径文件中的 `z` 是地面/路线高度，规划器会再加上
+`grid_map.body_height`（默认 `0.4 m`），因此目标机身高度约为 `1.95 m`。
 
 
 在另一个终端启动 RViz2：
@@ -74,6 +89,16 @@ RViz2 配置已适配 ROS 2 Humble：Go2 的 RobotModel 使用现有的 `meshes/
 - `navi_mode:=3`：订阅 `initial_path` 话题获取全局路径，并在局部范围内进行避障
 
 控制器模式分为 `open_loop`（开环）和 `closed_loop`（闭环）两种。本次移植保留的核心启动参数包括：`is_real_world`、`navi_mode`、`sensor_type`、`controller_mode`、`use_gpu`、`use_pcd_map` 和 `pcd_map_file`。
+
+与原作者实现保持一致，`closed_loop` 通过平面 `cmd_vel` 跟踪 `x/y/yaw`，
+适用于二维仿真或真机底盘接口；多楼层仿真应使用 `open_loop`，直接按规划得到的
+三维 B-spline 发布里程计。Mode 3 默认从 `(-5.5, 5.5, 0.5)` 启动，Mode 1
+默认从 `(-19.0, 1.0, 0.25)` 启动，仍可用 `init_x`、`init_y`、`init_z` 覆盖。
+
+Mode 3 默认等待外部节点发布 `/initial_path`。也可以通过
+`reference_path_file` 启动仓库内的演示发布器；该发布器会等待首个
+`body_pose` 和规划器订阅者就绪后发布一次路径。路径至少需要两个 xyz 点，
+相邻点会按三维距离 `0.5 m` 降采样，并始终保留最终点。
 
 当 `use_pcd_map:=true` 时，必须提供已有的 PCD 点云地图文件：
 
@@ -106,6 +131,14 @@ scan_planner_node:
 
 ```bash
 ros2 run scan_planner keypoint_recorder.py --output keypoints.yaml
+```
+
+参考路径演示发布器也可以独立运行：
+
+```bash
+ros2 run scan_planner reference_path_publisher.py --ros-args \
+  --params-file src/planner/plan_manage/config/reference_path.map.yaml \
+  -r body_pose:=/quad_0/body_pose -r initial_path:=/initial_path
 ```
 
 ## Gazebo Fortress / Go2 仿真

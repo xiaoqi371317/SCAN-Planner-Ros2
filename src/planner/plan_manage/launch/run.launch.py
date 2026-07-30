@@ -24,6 +24,7 @@ def _setup(context):
     sensor_type = LaunchConfiguration("sensor_type").perform(context)
     controller_mode = LaunchConfiguration("controller_mode").perform(context)
     keypoints_file = LaunchConfiguration("keypoints_file").perform(context)
+    reference_path_file = LaunchConfiguration("reference_path_file").perform(context)
     navi_mode = int(LaunchConfiguration("navi_mode").perform(context))
     if sensor_type not in ("lidar", "depth"):
         raise RuntimeError("sensor_type must be 'lidar' or 'depth'")
@@ -35,6 +36,19 @@ def _setup(context):
         raise RuntimeError(
             "navi_mode=2 requires keypoints_file to reference a ROS 2 parameter YAML"
         )
+    if reference_path_file and navi_mode != 3:
+        raise RuntimeError("reference_path_file is only valid when navi_mode=3")
+    if reference_path_file and not os.path.isfile(reference_path_file):
+        raise RuntimeError(
+            "reference_path_file must reference an existing ROS 2 parameter YAML"
+        )
+
+    mode_default_init = (-19.0, 1.0, 0.25) if navi_mode == 1 else (-5.5, 5.5, 0.5)
+    initial_position = []
+    for name, default in zip(("init_x", "init_y", "init_z"), mode_default_init):
+        value = LaunchConfiguration(name).perform(context)
+        initial_position.append(default if value == "" else float(value))
+    init_x, init_y, init_z = initial_position
 
     if is_real:
         body_pose = "/LIO/odom_vehicle"
@@ -109,7 +123,11 @@ def _setup(context):
                 executable="open_loop_controller",
                 name="open_loop_controller",
                 output="screen",
-                parameters=[controllers_yaml, common],
+                parameters=[
+                    controllers_yaml,
+                    common,
+                    {"init_x": init_x, "init_y": init_y, "init_z": init_z},
+                ],
                 remappings=[
                     ("planning/bspline", "/planning/bspline"),
                     ("body_pose", body_pose),
@@ -141,9 +159,9 @@ def _setup(context):
                         controllers_yaml,
                         common,
                         {
-                            "init_x": float(LaunchConfiguration("init_x").perform(context)),
-                            "init_y": float(LaunchConfiguration("init_y").perform(context)),
-                            "init_z": float(LaunchConfiguration("init_z").perform(context)),
+                            "init_x": init_x,
+                            "init_y": init_y,
+                            "init_z": init_z,
                             "publish_tf": False,
                         },
                     ],
@@ -153,6 +171,21 @@ def _setup(context):
                     ],
                 )
             )
+
+    if reference_path_file:
+        actions.append(
+            Node(
+                package="scan_planner",
+                executable="reference_path_publisher.py",
+                name="reference_path_publisher",
+                output="screen",
+                parameters=[reference_path_file, common],
+                remappings=[
+                    ("body_pose", body_pose),
+                    ("initial_path", "/initial_path"),
+                ],
+            )
+        )
 
     if not is_real:
         actions.extend(
@@ -197,15 +230,16 @@ def generate_launch_description():
             DeclareLaunchArgument("sensor_type", default_value="lidar"),
             DeclareLaunchArgument("controller_mode", default_value="closed_loop"),
             DeclareLaunchArgument("keypoints_file", default_value=""),
+            DeclareLaunchArgument("reference_path_file", default_value=""),
             DeclareLaunchArgument("use_gpu", default_value="false"),
             DeclareLaunchArgument("use_pcd_map", default_value="false"),
             DeclareLaunchArgument("pcd_map_file", default_value=""),
             DeclareLaunchArgument("map_size_x", default_value="40.0"),
             DeclareLaunchArgument("map_size_y", default_value="40.0"),
             DeclareLaunchArgument("map_size_z", default_value="5.0"),
-            DeclareLaunchArgument("init_x", default_value="-19.0"),
-            DeclareLaunchArgument("init_y", default_value="1.0"),
-            DeclareLaunchArgument("init_z", default_value="0.3"),
+            DeclareLaunchArgument("init_x", default_value=""),
+            DeclareLaunchArgument("init_y", default_value=""),
+            DeclareLaunchArgument("init_z", default_value=""),
             DeclareLaunchArgument("use_sim_time", default_value="false"),
             OpaqueFunction(function=_setup),
         ]
