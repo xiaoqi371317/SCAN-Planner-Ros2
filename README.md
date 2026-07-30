@@ -1,18 +1,27 @@
 <div align="center">
   <h1>SCAN-Planner ROS 2</h1>
   <h2>面向路线引导四足长程导航的空间碰撞感知局部规划器</h2>
-  <a href="https://arxiv.org/abs/2606.19555"><img alt="论文" src="https://img.shields.io/badge/论文-arXiv-b31b1b?logo=arxiv&logoColor=white"/></a>
-  <a href="https://www.bilibili.com/video/BV15a7P6UEXb/"><img alt="视频" src="https://img.shields.io/badge/视频-Bilibili-FB7299?logo=bilibili&logoColor=white"/></a>
-  <a href="https://wuyi2121.github.io/SCAN-Planner/"><img alt="项目主页" src="https://img.shields.io/badge/项目主页-Website-4A90E2?logo=googlechrome&logoColor=white"/></a>
-</div>
-
+  
+<p align="center">
+  <img src="assets/images/demo1.png" width="100%"/>
+</p>
+<p align="center">
+  <img src="assets/images/demo2.png" width="100%"/>
+</p>
+<p align="center">
+  <img src="assets/images/demo3.png" width="100%"/>
+</p>
 <p align="center">
   <img src="assets/images/abstract_real.jpg" width="100%"/>
 </p>
 
+二编：增加一个map.pcd，并提供测试例子（非搭建gazebo测试）
+
 SCAN-Planner 是一款面向四足机器人导航的空间碰撞感知局部规划器。本分支是原生 ROS 2 自移植版本，适配 Ubuntu 22.04、ROS 2 Humble、C++17 和 `colcon` 构建系统。
 
-本仓库是 [wuyi2121/SCAN-Planner](https://github.com/wuyi2121/SCAN-Planner) 的衍生 ROS 2 移植版。核心算法、项目设计与原始研究工作归功于 Han Zheng、Zhe Chen、Yiwen Fu、Ming Yang 和 Tong Qin；ROS 2 适配由本仓库维护者完成，不代表原作者的官方发布或认可。
+本仓库是 [wuyi2121/SCAN-Planner](https://github.com/wuyi2121/SCAN-Planner) 的衍生 ROS 2 移植版。核心算法、项目设计与原始研究工作归功于 Han Zheng、Zhe Chen、Yiwen Fu、Ming Yang 和 Tong Qin；ROS 2 适配由本仓库维护者完成。
+
+
 
 ## 构建
 
@@ -23,6 +32,7 @@ sudo apt update
 rosdep update
 rosdep install --from-paths src --ignore-src -r -y
 sudo apt install libarmadillo-dev libglew-dev libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev
+
 
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
@@ -36,8 +46,14 @@ colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release -DUSE_GPU
 仓库不再链接自带的 x86_64 架构 GLFW 动态库，GPU 构建依赖系统安装的 GLFW、GLEW 和 OpenGL 相关包。
 
 ## 快速启动
+--------------------------------------------------------------------------------------
+1.1、在一个终端启动 RViz2：
 
-启动自定义确定性仿真器与规划器（Mode 1 二维闭环演示，机身高度保持不变）：
+```bash
+source install/setup.bash
+ros2 launch scan_planner rviz.launch.py
+```
+1.2、在另一个终端启动自定义确定性仿真器与规划器（Mode 1 二维闭环演示，机身高度保持不变）：
 
 ```bash
 source install/setup.bash
@@ -45,17 +61,16 @@ ros2 launch scan_planner run.launch.py \
   is_real_world:=false navi_mode:=1 sensor_type:=lidar \
   controller_mode:=closed_loop use_gpu:=false
 ```
+--------------------------------------------------------------------------------------
 
+
+2.1、在一个终端启动 RViz2：
 
 ```bash
 source install/setup.bash
-ros2 launch scan_planner run.launch.py \
-  is_real_world:=false navi_mode:=1 sensor_type:=lidar \
-  controller_mode:=closed_loop use_gpu:=false \
-  use_pcd_map:=true pcd_map_file:=/home/xiaoqi_wen/Desktop/scan/SCAN-Planner/map.pcd
+ros2 launch scan_planner rviz.launch.py
 ```
-
-使用 `map.pcd` 运行 Mode 3 跨层开环演示：
+2.2、使用 `map.pcd` 运行 Mode 3 跨层开环演示(注意替换自己的路径)：
 
 ```bash
 source install/setup.bash
@@ -63,21 +78,16 @@ ros2 launch scan_planner run.launch.py \
   is_real_world:=false navi_mode:=3 sensor_type:=lidar \
   controller_mode:=open_loop use_gpu:=false \
   use_pcd_map:=true \
-  pcd_map_file:=/home/xiaoqi_wen/Desktop/scanfix/SCAN-Planner-Ros2/map.pcd \
-  reference_path_file:=/home/xiaoqi_wen/Desktop/scanfix/SCAN-Planner-Ros2/src/planner/plan_manage/config/reference_path.map.yaml
+  
+  pcd_map_file:=/your_map_location/map.pcd \
+  
+  reference_path_file:=/your_project_location/src/planner/plan_manage/config/reference_path.map.yaml
 ```
 
 示例参考路径从 `(-5.5, 5.5, 0.10)` 沿地图坡道上升到
 `(-5.5, -4.5, 1.55)`。路径文件中的 `z` 是地面/路线高度，规划器会再加上
 `grid_map.body_height`（默认 `0.4 m`），因此目标机身高度约为 `1.95 m`。
 
-
-在另一个终端启动 RViz2：
-
-```bash
-source install/setup.bash
-ros2 launch scan_planner rviz.launch.py
-```
 
 RViz2 配置已适配 ROS 2 Humble：Go2 的 RobotModel 使用现有的 `meshes/base.dae`，Sliding Map Bounds 订阅 `/grid_map/sliding_map_bbox`，Goal 订阅 `/goal_point`。
 
